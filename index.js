@@ -31,41 +31,51 @@ async function run() {
     const successCollection = client.db('medCoordDB').collection('successStory');
     const campCollection = client.db('medCoordDB').collection('allCamps');
     //users
-    app.post('/users', async(req,res) => {
-           const user = req.body;
-           const query = {email: user?.email}
-           const existingUser = await usersCollection.findOne(query);
-           if(existingUser){
-              return res.status(400).send({ message: "User already exists" });
-           }
-           const result = await usersCollection.insertOne(user);
-           res.send(result);
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const query = { email: user?.email }
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.status(400).send({ message: "User already exists" });
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
     })
     //Camps
-    app.post('/allCamps',async(req,res) => {
-           const camp = req.body;
-           const result = await campCollection.insertOne(camp);
-           res.send(result);
+    app.post('/allCamps', async (req, res) => {
+      const camp = req.body;
+      const result = await campCollection.insertOne(camp);
+      res.send(result);
+    })
+    //get popular
+    app.get('/allCamps', async (req, res) => {
+      const popularCamps = await campCollection.aggregate([
+        {$addFields: {participantCount: {$toInt:'$participantCount'}}},
+        { $sort: { participantCount: -1 } },
+        { $limit: 6 }
+      ]).toArray();
+      console.log(popularCamps);
+      res.send(popularCamps)
     })
     //success story
-    app.get('/successStory',async (req,res) => {
-            const result = await successCollection.find().toArray();
-            res.send(result)
+    app.get('/successStory', async (req, res) => {
+      const result = await successCollection.find().toArray();
+      res.send(result)
     })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-   // await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
 
 
-app.get('/', (req,res) => {
-    res.send("Final-Assignment-Server is Running");
+app.get('/', (req, res) => {
+  res.send("Final-Assignment-Server is Running");
 })
 app.listen(port, () => {
-    console.log(`Final-Assignment-Server is Running on port ${port}`);
+  console.log(`Final-Assignment-Server is Running on port ${port}`);
 })
