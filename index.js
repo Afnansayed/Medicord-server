@@ -32,6 +32,13 @@ async function run() {
     const campCollection = client.db('medCoordDB').collection('allCamps');
     const participantCollection = client.db('medCoordDB').collection('participantCamps');
     //users
+    app.get('/users/:email', async(req,res) => {
+         const email = req?.params.email;
+         const query = {email: email};
+         const result = await usersCollection.findOne(query);
+         res.send(result);
+    })
+    //post users data
     app.post('/users', async (req, res) => {
       const user = req.body;
       const query = { email: user?.email }
