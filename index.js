@@ -30,6 +30,7 @@ async function run() {
     const usersCollection = client.db('medCoordDB').collection('users');
     const successCollection = client.db('medCoordDB').collection('successStory');
     const campCollection = client.db('medCoordDB').collection('allCamps');
+    const participantCollection = client.db('medCoordDB').collection('participantCamps');
     //users
     app.post('/users', async (req, res) => {
       const user = req.body;
@@ -50,11 +51,11 @@ async function run() {
     //get popular
     app.get('/allCamps', async (req, res) => {
       const popularCamps = await campCollection.aggregate([
-        {$addFields: {participantCount: {$toInt:'$participantCount'}}},
+        // {$addFields: {participantCount: {$toInt:'$participantCount'}}},
         { $sort: { participantCount: -1 } },
         { $limit: 6 }
       ]).toArray();
-      console.log(popularCamps);
+      //console.log(popularCamps);
       res.send(popularCamps)
     })
     //get single camp data
@@ -63,6 +64,26 @@ async function run() {
             const query = {_id: new ObjectId(id)};
             const result = await campCollection.findOne(query);
             res.send(result); 
+    })
+    //patch
+    app.patch('/allCamps/:id', async(req,res) => {
+            const updateCount = req.body;
+            const id = req.params.id;
+            const filter = {_id: new ObjectId(id)};
+            const option = {upsert: true};
+            const updatedDoc = {
+              $set: {
+                  participantCount: updateCount.participantCount,
+              }
+            };
+            const result = await campCollection.updateOne(filter,updatedDoc,option);
+            res.send(result);
+    })
+    //participant Camp
+    app.post('/participantCamps', async (req,res) => {
+        const participant = req.body;
+        const result = await participantCollection.insertOne(participant);
+        res.send(result);
     })
     //success story
     app.get('/successStory', async (req, res) => {
