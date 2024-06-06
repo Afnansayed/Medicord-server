@@ -42,22 +42,68 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     })
+    //all camps
+    //get popular
+    app.get('/allCamps', async (req, res) => {
+      try {
+        const { search = '', sortBy = 'date', order = 'asc', limit, popular = false } = req.query;
+
+        // Convert limit to integer
+        const limitInt = limit ? parseInt(limit, 10) : 1000;
+
+        // Define sorting order
+        const sortOrder = order === 'asc' ? 1 : -1;
+
+        const validSortFields = ['campName', 'date', 'participantCount', 'campFees'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'date';
+        // Create a search query
+        const query = {
+          $or: [
+            { campName: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } },
+            { location: { $regex: search, $options: 'i' } },
+            { healthcareProfessional: { $regex: search, $options: 'i' } },
+            { date: { $regex: search, $options: 'i' } }
+          ]
+        };
+
+        // Conditional sorting for popular camps
+        let sortCriteria = {};
+        if (sortBy === 'mostRegistered') {
+          sortCriteria = { participantCount: -1 };
+        } else if (sortBy === 'campFees') {
+          sortCriteria = { campFees: sortOrder };
+        } else if (sortBy === 'campName') {
+          sortCriteria = { campName: sortOrder };
+        } else {
+          sortCriteria = { [sortField]: sortOrder };
+        }
+
+        if (popular) {
+          sortCriteria = { participantCount: -1 };
+        }
+
+        // Aggregate query with search, sort, and limit
+        const result = await campCollection.aggregate([
+          { $match: query },
+          // { $addFields: { participantCount: { $toInt: '$participantCount' }, campFees: { $toInt: '$campFees' } } },
+          { $sort: sortCriteria },
+          { $limit: limitInt }
+        ]).toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send("Error fetching camps with query parameters");
+      }
+    });
     //Camps
     app.post('/allCamps', async (req, res) => {
       const camp = req.body;
       const result = await campCollection.insertOne(camp);
       res.send(result);
     })
-    //get popular
-    app.get('/allCamps', async (req, res) => {
-      const popularCamps = await campCollection.aggregate([
-        // {$addFields: {participantCount: {$toInt:'$participantCount'}}},
-        { $sort: { participantCount: -1 } },
-        { $limit: 6 }
-      ]).toArray();
-      //console.log(popularCamps);
-      res.send(popularCamps)
-    })
+    
     //get single camp data
     app.get('/allCamps/:id', async(req,res) => {
             const id = req.params.id;
