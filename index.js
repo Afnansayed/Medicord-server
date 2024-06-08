@@ -49,6 +49,21 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     })
+    //updated user data 
+    app.patch('/users/:id',async(req,res) => {
+          const  updatedInfo = req.body;
+          const id = req.params.id;
+          const filter = {_id: new ObjectId(id)};
+          const option = {upsert: true};
+          const updatedDoc = {
+            $set: {
+              name: updatedInfo?.name,
+              image: updatedInfo?.image
+            }
+          }
+          const result = await usersCollection.updateOne(filter,updatedDoc,option);
+          res.send(result)
+    })
     //all camps
     //get popular
     app.get('/allCamps', async (req, res) => {
