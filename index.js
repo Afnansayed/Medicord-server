@@ -68,7 +68,7 @@ async function run() {
     //get popular
     app.get('/allCamps', async (req, res) => {
       try {
-        const { search = '', sortBy = 'date', order = 'asc', limit, popular = false } = req.query;
+        const { search = '', sortBy = 'date', order = 'asc', limit, popular = false , email='' } = req.query;
 
         // Convert limit to integer
         const limitInt = limit ? parseInt(limit, 10) : 1000;
@@ -79,7 +79,7 @@ async function run() {
         const validSortFields = ['campName', 'date', 'participantCount', 'campFees'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'date';
         // Create a search query
-        const query = {
+        let query = {
           $or: [
             { campName: { $regex: search, $options: 'i' } },
             { description: { $regex: search, $options: 'i' } },
@@ -88,6 +88,14 @@ async function run() {
             { date: { $regex: search, $options: 'i' } }
           ]
         };
+        if (email) {
+          query = {
+            $and: [
+              query,
+              { organizerEmail: email }
+            ]
+          };
+        }
 
         // Conditional sorting for popular camps
         let sortCriteria = {};
@@ -135,13 +143,36 @@ async function run() {
     })
     //patch
     app.patch('/allCamps/:id', async(req,res) => {
-            const updateCount = req.body;
+            const updatedInfo = req.body;
             const id = req.params.id;
             const filter = {_id: new ObjectId(id)};
             const option = {upsert: true};
             const updatedDoc = {
               $set: {
-                  participantCount: updateCount.participantCount,
+                  participantCount: updatedInfo?.participantCount,
+              }
+            };
+            const result = await campCollection.updateOne(filter,updatedDoc,option);
+            res.send(result);
+    })
+    //update
+    app.put('/allCamps/:id', async(req,res) => {
+            const updatedInfo = req.body;
+            const id = req.params.id;
+            const filter = {_id: new ObjectId(id)};
+            const option = {upsert: true};
+            const updatedDoc = {
+              $set: {
+                  campFees:updatedInfo?.campFees,
+                  participantCount: updatedInfo?.participantCount,
+                  campName: updatedInfo?.campName,
+                  location: updatedInfo?.location,
+                  date: updatedInfo?.date,
+                  description:updatedInfo?.description,
+                  organizerEmail:updatedInfo?.organizerEmail,
+                  organizer: updatedInfo?.organizer,
+                  healthcareProfessional: updatedInfo?.healthcareProfessional,
+                  image:updatedInfo?.image
               }
             };
             const result = await campCollection.updateOne(filter,updatedDoc,option);
