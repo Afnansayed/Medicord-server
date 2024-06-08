@@ -155,7 +155,7 @@ async function run() {
             const result = await campCollection.updateOne(filter,updatedDoc,option);
             res.send(result);
     })
-    //update
+    //update campDetails
     app.put('/allCamps/:id', async(req,res) => {
             const updatedInfo = req.body;
             const id = req.params.id;
@@ -176,6 +176,13 @@ async function run() {
               }
             };
             const result = await campCollection.updateOne(filter,updatedDoc,option);
+            res.send(result);
+    })
+    //dele camp details
+    app.delete('/allCamps/:id', async(req,res) => {
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await campCollection.deleteOne(query);
             res.send(result);
     })
     //participant Camp
