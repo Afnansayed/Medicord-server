@@ -49,6 +49,7 @@ async function run() {
     const successCollection = client.db('medCoordDB').collection('successStory');
     const campCollection = client.db('medCoordDB').collection('allCamps');
     const participantCollection = client.db('medCoordDB').collection('participantCamps');
+    const reviewCollection = client.db('medCoordDB').collection('reviews');
 
     //verify admin
     const verifyAdmin = async (req, res, next) => {
@@ -291,7 +292,7 @@ async function run() {
     })
 
     //participant camp data delete operation
-    app.delete('/participantCamps/:id', async (req, res) => {
+    app.delete('/participantCamps/:id',verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await participantCollection.deleteOne(query);
@@ -301,6 +302,12 @@ async function run() {
     app.get('/successStory', async (req, res) => {
       const result = await successCollection.find().toArray();
       res.send(result)
+    })
+    // review of experience
+    app.post('/reviews', async(req,res) => {
+             const  review = req.body;
+             const result = await reviewCollection.insertOne(review);
+             res.send(result);
     })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
