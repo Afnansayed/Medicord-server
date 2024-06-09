@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -8,6 +9,23 @@ const port = process.env.PORT || 5000;
 //middleware 
 app.use(cors());
 app.use(express.json());
+
+const verifyToken = (req,res,next) =>{
+      //console.log('inside verify token', req.headers.authorization);
+     if(!req.headers.authorization){
+       return res.status(401).send({ message: 'forbidden access' });
+     }
+     const token = req.headers.authorization.split(' ')[1];
+    // console.log( 'taken by headers',token)
+    // console.log('env token', process.env.SECRET_KEY)
+     jwt.verify(token, process.env.SECRET_KEY ,(err,decoded) => {
+      if(err){
+        return res.status(401).send({ message: 'forbidden access' });
+      }
+      req.decoded = decoded;
+      next();
+     })
+}
 
 //mongoDb connect
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -31,8 +49,33 @@ async function run() {
     const successCollection = client.db('medCoordDB').collection('successStory');
     const campCollection = client.db('medCoordDB').collection('allCamps');
     const participantCollection = client.db('medCoordDB').collection('participantCamps');
+
+    //verify admin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const isAdmin = user?.role === 'admin';
+      if (!isAdmin) {
+        return res.status(403).send({ message: 'forbidden access' });
+      }
+      next();
+    }
+
+    //jwt api
+    app.post('/jwt', async(req,res) => {
+          const user = req.body;
+          const token = jwt.sign(user , process.env.SECRET_KEY , {expiresIn: '1h'});
+          res.send({token});
+    })
+    //data related api
     //users
-    app.get('/users/:email', async(req,res) => {
+    app.get('/users',verifyToken,verifyAdmin, async(req,res) => {
+        const result = await usersCollection.find().toArray();
+        res.send(result);
+    })
+    //data related api
+    app.get('/users/:email', verifyToken, async(req,res) => {
          const email = req?.params.email;
          const query = {email: email};
          const result = await usersCollection.findOne(query);
@@ -50,7 +93,7 @@ async function run() {
       res.send(result);
     })
     //updated user data 
-    app.patch('/users/:id',async(req,res) => {
+    app.patch('/users/:id',verifyToken,async(req,res) => {
           const  updatedInfo = req.body;
           const id = req.params.id;
           const filter = {_id: new ObjectId(id)};
@@ -63,6 +106,43 @@ async function run() {
           }
           const result = await usersCollection.updateOne(filter,updatedDoc,option);
           res.send(result)
+    })
+    //make user as admin
+    app.patch('/users/admin/:id',verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: 'admin'
+        }
+      }
+      const result = await usersCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
+//Check user is admin or not 
+   app.get('/users/admin/:email',verifyToken, async (req,res) => {
+          const email = req.params.email;
+          if(email !== req?.decoded?.email){
+            return res.status(403).send({ message: 'Unauthorized access' });
+          }
+
+          const query = {email: email};
+          const user = await usersCollection.findOne(query);
+          let admin = false;
+          if(user){
+            if(user?.role === 'admin'){
+               admin = true;
+            }
+          }
+          res.send({admin});
+   })
+
+// Delete user
+    app.delete('/users/:id',verifyToken,verifyAdmin, async(req,res) => {
+           const id = req.params.id;
+           const query = {_id: new ObjectId(id)};
+           const result = await usersCollection.deleteOne(query);
+           res.send(result)
     })
     //all camps
     //get popular
@@ -185,7 +265,13 @@ async function run() {
             const result = await campCollection.deleteOne(query);
             res.send(result);
     })
-    //participant Camp
+    //participant Camp api
+    //get all  participated camp data 
+    app.get('/participantCamps',verifyToken,verifyAdmin, async(req,res) => {
+          const result = await participantCollection.find().toArray();
+          res.send(result);
+    })
+    //post
     app.post('/participantCamps', async (req,res) => {
         const participant = req.body;
         const result = await participantCollection.insertOne(participant);
