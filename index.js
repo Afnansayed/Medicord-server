@@ -277,6 +277,14 @@ async function run() {
         const result = await participantCollection.insertOne(participant);
         res.send(result);
     })
+
+    //participant camp data delete operation
+    app.delete('/participantCamps/:id', async (req,res) => {
+                const id = req.params.id;
+                const query = {_id: new ObjectId(id)};
+                const result = await participantCollection.deleteOne(query);
+                res.send(result)
+    })
     //success story
     app.get('/successStory', async (req, res) => {
       const result = await successCollection.find().toArray();
