@@ -51,6 +51,7 @@ async function run() {
     const campCollection = client.db('medCoordDB').collection('allCamps');
     const participantCollection = client.db('medCoordDB').collection('participantCamps');
     const reviewCollection = client.db('medCoordDB').collection('reviews');
+    const paymentCollection = client.db('medCoordDB').collection('histories');
 
     //verify admin
     const verifyAdmin = async (req, res, next) => {
@@ -291,6 +292,20 @@ async function run() {
       const result = await participantCollection.insertOne(participant);
       res.send(result);
     })
+    //fetch participant data
+    app.patch(`/participantCamps/:id`, async (req,res) => {
+            const updatedStatus = req.body;
+            const id = req.params.id;
+            const filter = {_id: new ObjectId(id)};
+            const option = {upsert: true};
+            const updatedDoc = {
+              $set:{
+                paymentStatus: "Paid"
+              }
+            }
+            const result = await participantCollection.updateOne(filter,updatedDoc,option);
+            res.send(result);
+    })
 
     //participant camp data delete operation
     app.delete('/participantCamps/:id',verifyToken, async (req, res) => {
@@ -324,6 +339,14 @@ async function run() {
               clientSecret: paymentIntent.client_secret
             })
     })
+
+    //for payment history
+    app.post('/histories', async(req,res) => {
+            const history = req.body;
+            const result = await paymentCollection.insertOne(history);
+            res.send(result);
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
