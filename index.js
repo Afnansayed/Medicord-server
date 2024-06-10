@@ -299,9 +299,13 @@ async function run() {
             const filter = {_id: new ObjectId(id)};
             const option = {upsert: true};
             const updatedDoc = {
-              $set:{
-                paymentStatus: "Paid"
-              }
+              $set:{}
+            }
+            if(updatedStatus.paymentStatus){
+                updatedDoc.$set.paymentStatus = updatedStatus.paymentStatus;  
+            }
+            if(updatedStatus.confirmationStatus){
+                updatedDoc.$set.confirmationStatus = updatedStatus.confirmationStatus;
             }
             const result = await participantCollection.updateOne(filter,updatedDoc,option);
             res.send(result);
