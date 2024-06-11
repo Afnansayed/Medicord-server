@@ -277,7 +277,7 @@ async function run() {
     //participant Camp api
     //get all  participated camp data 
     app.get('/participantCamps',verifyToken, async (req, res) => {
-      console.log(req.query)
+     // console.log(req.query)
       const email = req.query.email;
       const page = parseInt(req.query.page) || 0;
       const size = parseInt(req.query.size) || 10;
