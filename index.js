@@ -50,7 +50,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-   // await client.connect();
+    await client.connect();
 
     const usersCollection = client.db('medCoordDB').collection('users');
     const successCollection = client.db('medCoordDB').collection('successStory');
@@ -277,13 +277,25 @@ async function run() {
     //participant Camp api
     //get all  participated camp data 
     app.get('/participantCamps',verifyToken, async (req, res) => {
+      console.log(req.query)
       const email = req.query.email;
+      const page = parseInt(req.query.page) || 0;
+      const size = parseInt(req.query.size) || 10;
+
       let query = {};
       if(email) {
         query = {participantEmail: email};
       } 
-      const result = await participantCollection.find(query).toArray();
+      const result = await participantCollection.find(query)
+      .skip(page * size)
+      .limit(size)
+      .toArray();
       res.send(result);
+    })
+    //participant count for pagination
+    app.get('/participantCampsCount' , async (req,res) => {
+            const count = await participantCollection.estimatedDocumentCount();
+            res.send({count});
     })
     //get  registered data for user who registered
     app.get('/participantCamps/:id', async (req, res)=>{
@@ -372,7 +384,7 @@ async function run() {
     })
 
     // Send a ping to confirm a successful connection
-    //await client.db("admin").command({ ping: 1 });
+    await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
